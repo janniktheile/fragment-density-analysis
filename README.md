@@ -27,15 +27,15 @@ fragment-density-analysis/
 └── README.md
 ```
 
-## Requirements
+## ⚙️ Requirements
 
 The scripts require Python 3 and the following packages:
 
 ```text
-numpy
-pandas
-matplotlib
-scipy
+numpy>=2.0
+pandas>=2.0
+matplotlib>=3.7
+scipy>=1.10
 ```
 
 The dependencies can be installed using:
