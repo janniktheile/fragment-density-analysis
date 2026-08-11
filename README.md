@@ -268,11 +268,18 @@ The theoretical background and the complete mathematical formulation of the frag
 
 # Citation
 
-If you use these scripts in academic work, please cite the associated publication:
+If you use these scripts or the associated data in academic work, please cite the associated publication:
 
 **Strong-Field-Driven Non-Linear Vibronic Coupling in an Asymmetric Donor–Acceptor Oligomer**
 
-*(Citation and DOI will be added after publication.)*
+*(Full citation and DOI will be added after publication.)*
+
+The analysis scripts and supporting data are archived on Zenodo and are available at:
+
+**Zenodo DOI:** 10.5281/zenodo.21885972
+
+Please cite the Zenodo record when using the scripts or data provided in this repository.
+
 
 ---
 
