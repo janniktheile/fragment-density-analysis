@@ -25,7 +25,6 @@ Although the scripts were developed for the asymmetric donor–acceptor oligomer
 * Projected two-dimensional density maps
 * Time-dependent fragment population analysis
 * Charge-redistribution visualization
-* Publication-quality figures
 
 ---
 
@@ -38,12 +37,9 @@ fragment-density-analysis/
 ├── analyze_density_laser.py
 ├── fragment_cube_partition.py
 ├── delta_q_t_plot.py
-│
-├── requirements.txt
 ├── LICENSE
 ├── README.md
-└── docs/
-      └── methods.md
+
 ```
 
 ---
