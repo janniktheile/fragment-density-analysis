@@ -276,7 +276,7 @@ If you use these scripts or the associated data in academic work, please cite th
 
 The analysis scripts and supporting data are archived on Zenodo and are available at:
 
-**Zenodo DOI:** 10.5281/zenodo.21885972 **
+**Zenodo DOI:** 10.5281/zenodo.21885972
 
 Please cite the Zenodo record when using the scripts or data provided in this repository.
 
