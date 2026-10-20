@@ -10,12 +10,10 @@ This repository provides Python scripts for analyzing electron-density data obta
 
 The software supports two complementary analysis workflows:
 
-* **Projected density-difference visualization** from Gaussian Cube files.
+* **Projected induced-density visualization** from Gaussian Cube files.
 * **Fragment-resolved electron-population analysis** using a smooth distance-based real-space partitioning scheme.
 
 Although the scripts were developed for the asymmetric donor–acceptor oligomer **A1–D–A2(3F)**, they can be adapted to other molecular systems by modifying the input files and fragment definitions.
-
----
 
 ## Features
 
@@ -65,19 +63,34 @@ pip install -r requirements.txt
 
 ---
 
-# Workflow 1 – Projected Density-Difference Maps
 
-## Step 1 – Generate Density-Difference Cube Files
+### Terminology
 
-`density_difference.py`
+**Induced density:** δρ(**r**,t) = ρ(**r**,t) − ρ_GS(**r**), the change of the electron density with respect to the ground state (red: electron accumulation, blue: depletion).
 
-This script generates normalized electron-density difference Cube files from two input wavefunction Cube files.
+For the dominant HOMO→LUMO transition of A1–D–A2(3F), δρ is represented by the two-orbital contribution
+
+δρ(**r**,t) ≈ |ψ_L(**r**,t)|² − |ψ_H(**r**,t)|²,
+
+where ψ_H(**r**,t) and ψ_L(**r**,t) are the time-dependent orbitals with HOMO and LUMO character, each renormalized to unity. Because both orbitals are normalized, the maps show the spatial character of the charge redistribution, not the magnitude of the transferred charge; the latter is quantified by the fragment populations (Workflow 2).
+
+The induced density is distinct from the **density difference** between an excited eigenstate and the ground state, which characterizes a stationary excitation.
+
+---
+
+# Workflow 1 – Projected Induced-Density Maps
+
+## Step 1 – Generate Induced-Density Cube Files
+
+`induced_density.py`
+
+This script generates normalized induced-density Cube files δρ(**r**,t) ≈ |ψ_L(t)|² − |ψ_H(t)|² from two input wavefunction Cube files (HOMO and LUMO character).
 
 Typical output:
 
 ```text
-difference_density_normalized.cube
-difference_density_normalized_summary.txt
+induced_density.cube
+induced_density_summary.txt
 ```
 
 The summary file reports
@@ -85,17 +98,17 @@ The summary file reports
 * wavefunction normalization,
 * density integrals,
 * density extrema,
-* total density-difference integral.
+* total induced-density integral (≈ 0 by construction).
 
 The script should be executed for every simulation snapshot that will later be visualized.
 
 ---
 
-## Step 2 – Generate Projected Density Maps
+## Step 2 – Generate Projected Induced-Density Maps
 
 `analyze_density_laser.py`
 
-This script visualizes projected density-difference maps from one or two simulation series.
+This script visualizes projected induced-density maps from one or two simulation series.
 
 Typical applications include comparisons of
 
@@ -105,7 +118,7 @@ Typical applications include comparisons of
 
 The script generates publication-quality figures containing
 
-* projected density-difference maps,
+* projected induced-density maps,
 * molecular overlay,
 * Gaussian laser pulse,
 * shared color scale,
@@ -115,9 +128,11 @@ Typical output:
 
 ```text
 *_2D_projected_two_series.png
+*_fragment_charges_two_series.csv
+*_analysis_summary_two_series.txt
 ```
 
-The projected fragment values reported by this script are intended as qualitative trend metrics. Quantitative fragment-resolved electron populations should be obtained using `fragment_cube_partition.py`.
+The projected fragment values reported by this script use a nearest-atom (Voronoi-type) partition **in the 2D projection plane** (not in 3D); positive values correspond to a net electron gain of the fragment. They are intended as qualitative trend metrics. Quantitative fragment-resolved electron populations should be obtained using `fragment_cube_partition.py`.
 
 ---
 
@@ -125,7 +140,7 @@ The projected fragment values reported by this script are intended as qualitativ
 
 `fragment_cube_partition.py`
 
-This script computes fragment-resolved electron populations from time-dependent Gaussian Cube files.
+Quantitative time-dependent fragment populations q_k(t) are obtained from the total electron density using a smooth real-space partitioning with distance-based Gaussian soft weights (partition of unity). Unlike the hard nearest-atom assignment used in Workflow 1, this scheme avoids grid-induced artifacts and yields absolute fragment populations.
 
 Fragments are defined by user-specified atom indices.
 
