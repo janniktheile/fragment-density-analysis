@@ -1,7 +1,24 @@
 #!/usr/bin/env python3
-"""
-Compare two difference-density CUBE series with molecular overlays and
+r"""
+Compare two induced-density CUBE series with molecular overlays and
 Gaussian laser timelines.
+
+Terminology
+-----------
+The plotted quantity is the *induced density*
+
+    delta_rho(r,t) = rho(r,t) - rho_GS(r),
+
+i.e. the change of the electron density with respect to the ground state
+(positive: electron accumulation, negative: depletion). For the dominant
+HOMO->LUMO transition of A1-D-A2(3F) it is represented by the two-orbital
+contribution
+
+    delta_rho(r,t) ~ |psi_L(r,t)|^2 - |psi_H(r,t)|^2,
+
+with both orbitals renormalized to unity (see induced_density.py). It is
+distinct from the "density difference" between an excited eigenstate and the
+ground state.
 
 Requirements
 ------------
@@ -11,11 +28,13 @@ matplotlib>=3.7
 
 Typical usage
 -------------
-python analyze_density_laser_clean.py \
+# Series A: cube files of the 1 GW/cm^2 simulation (moving nuclei)
+# Series B: cube files of the second simulation
+python analyze_density_laser.py \
   --series-a \
-    1moving_21.cube 1moving_35.cube 1moving_60.cube 1moving_105.cube \ #1 describes the cube-files of the 1 GW/cm^2 simulation
+    1moving_21.cube 1moving_35.cube 1moving_60.cube 1moving_105.cube \
   --series-b \
-    moving_21.cube moving_35.cube moving_60.cube moving_105.cube \
+    500moving_21.cube 500moving_35.cube 500moving_60.cube 500moving_105.cube \
   --geo geo.xyz \
   --project-axis z \
   --profile-axis x \
@@ -24,23 +43,22 @@ python analyze_density_laser_clean.py \
   --laser-t0 21 \
   --laser-start 10 \
   --laser-end 35 \
-  --laser-height-a 0.045 \
-  --laser-height-b 0.065 \
+  --laser-height-a 0.14 \
+  --laser-height-b 0.14 \
   --laser-amplitude-a 1 \
-  --laser-amplitude-b 1.65 \
+  --laser-amplitude-b 1.9 \
   --atom-size 180 \
-  --zoom-padding 0.6 \
+  --zoom-padding 0.85 \
   --timeline-fig-width-per-panel 5.6 \
   --timeline-fig-height 10.0 \
-  --timeline-offset 0.035 \
+  --timeline-offset 0.015 \
   --timeline-tick-size 30 \
   --timeline-label-size 24 \
   --legend-size 30 \
   --legend-title-size 32 \
-  --laser-ymax 2.0 \
-  --lower-timeline-legend-gap 0.055 \
+  --legend-y 0.018 \
   --shared-cbar-x 0.907 \
-  --shared-cbar-y 0.135 \
+  --shared-cbar-y 0.15 \
   --colorbar-label-size 30 \
   --colorbar-tick-size 26 \
   --dpi 600 \
@@ -57,6 +75,11 @@ Notes
 CUBE coordinates are assumed to be in Bohr and are converted to Angstrom.
 Atom positions are taken from the CUBE headers; the XYZ file supplies element
 symbols and atom order. Default fragments are A1=1-6, D=7-20, A2=21-32.
+
+Fragment charges reported by this script use a nearest-atom (Voronoi-type)
+partition in the 2D projection plane (not in 3D). Positive values correspond
+to a net electron gain of the fragment. They are qualitative trend metrics and
+not absolute fragment populations.
 """
 
 import argparse
@@ -68,7 +91,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-SCRIPT_VERSION = "v11-fixed-laser-scaling-and-legend-spacing"
+SCRIPT_VERSION = "v12-induced-density-terminology"
 from matplotlib.patches import Ellipse
 from matplotlib.lines import Line2D
 from matplotlib.ticker import FuncFormatter
@@ -143,7 +166,7 @@ class CubeData:
     axes: np.ndarray         # shape (3,3), Angstrom vectors
     shape: tuple             # (nx, ny, nz)
     atoms: list              # list of tuples (Z, charge, x,y,z) in Angstrom from cube
-    data: np.ndarray         # shape (nx,ny,nz)
+    data: np.ndarray         # shape (nx,ny,nz); induced density delta_rho
 
 
 def unit_factor(unit):
@@ -268,7 +291,7 @@ def molecule_limits(coords2d, padding=3.0):
 
 
 def overlay_atoms_and_fragments(ax, symbols, xyz, remaining_axes, fragments, atom_size=70, label_offset=1.15):
-    """Overlay atom symbols and fragment outlines on a projected 2D density map.
+    """Overlay atom symbols and fragment outlines on a projected 2D induced-density map.
 
     Atom positions come from the cube header. The xyz file supplies only the
     element symbols. Fragment labels are placed above the corresponding fragment
@@ -319,7 +342,10 @@ def overlay_atoms_and_fragments(ax, symbols, xyz, remaining_axes, fragments, ato
 
 
 def add_delta_q_box(ax, row, fragments):
-    """Horizontal per-panel box with projected fragment charges in 10^-3 e."""
+    """Horizontal per-panel box with projected fragment charges in 10^-3 e.
+
+    Positive values correspond to a net electron gain of the fragment.
+    """
     items = [
         TextArea(
             r"$\Delta q\;(10^{-3}\,e)$",
@@ -402,11 +428,13 @@ def global_projected_vmax(cubes, project_axis, percentile=None):
 
 
 def compute_basic_integrals(cube, symbols, atom_xyz_cube, fragments, mol_padding=6.0, project_axis="z"):
-    """Fast sanity checks plus fragment trend metrics.
+    """Fast sanity checks plus fragment trend metrics for the induced density.
 
     Fragment charges are computed from the 2D projected map using a nearest-atom
-    Voronoi assignment in the projection plane. This is fast and consistent with
-    the plotted 2D maps. Use it as a trend metric, not as a unique observable.
+    Voronoi assignment IN THE PROJECTION PLANE (not in 3D). This is fast and
+    consistent with the plotted 2D maps. Positive values correspond to a net
+    electron gain of the fragment. Use them as a qualitative trend metric, not
+    as an absolute fragment population.
     """
     spacing = get_spacing(cube)
     voxel = float(np.prod(spacing))
@@ -504,9 +532,9 @@ def make_2d_comparison(cubes, labels, symbols, atom_xyz_cube, fragments, args, c
     cbar = fig.colorbar(im, cax=cax)
     cbar.ax.yaxis.set_major_formatter(FuncFormatter(lambda val, pos: f"{val*1e3:.1f}"))
     cbar.set_label(
-    rf"Projected $\Delta\rho$ integrated along ${args.project_axis}$ "
-    rf"($10^{{-3}}\ \mathrm{{e}}\,\AA^{{-2}}$)",
-    labelpad=16
+        rf"Projected induced density $\delta\rho$ integrated along ${args.project_axis}$ "
+        rf"($10^{{-3}}\ \mathrm{{e}}\,\AA^{{-2}}$)",
+        labelpad=16
     )
     cbar.ax.tick_params(width=2.5, length=9, labelsize=24)
     for spine in cbar.ax.spines.values():
@@ -840,9 +868,7 @@ def make_2d_two_series(series_a, series_b, labels, symbols, atom_xyz_cube, fragm
         FuncFormatter(lambda value, position: f"{value * 1e3:.1f}")
     )
     cbar.set_label(
-        rf"Projected $\Delta\rho$ integrated along ${args.project_axis}$"
-        "\n"
-        rf"($10^{{-3}}\ \mathrm{{e}}/\AA^2$)",
+        rf"$\int \delta\rho\, d{args.project_axis} \: (10^{{-3}}\ \mathrm{{e}}\,\AA^{{-2}})$",
         labelpad=12,
         fontsize=args.colorbar_label_size,
     )
@@ -906,12 +932,15 @@ def make_2d_two_series(series_a, series_b, labels, symbols, atom_xyz_cube, fragm
 
 
 def print_delta_q_table(df, fragments):
-    """Print compact Delta-q values in 10^-3 e for manual thesis tables."""
+    """Print compact Delta-q values in 10^-3 e for manual thesis tables.
+
+    Positive values correspond to a net electron gain of the fragment.
+    """
     display_cols = ["series", "label"] + list(fragments.keys())
     compact = df[display_cols].copy()
     for frag in fragments:
         compact[frag] = compact[frag] * 1e3
-    print("\nProjected fragment charges for manual table (Delta q in 10^-3 e):")
+    print("\nProjected fragment charges for manual table (Delta q in 10^-3 e, positive = electron gain):")
     print(compact.to_string(index=False, float_format=lambda x: f"{x:+.2f}"))
 
 
@@ -931,7 +960,7 @@ def make_1d_profiles(cubes, labels, args, atom_xyz_cube=None):
     ax.axhline(0.0, color="black", linewidth=1.2, alpha=1.0)
     ax.set_xlabel(f"{args.profile_axis} coordinate (Å)")
     other = ''.join([a for a in 'xyz' if a != args.profile_axis])
-    ax.set_ylabel(rf"$\iint \Delta\rho(x,y,z)\,d{other[0]}\,d{other[1]}$ (e/Å)")
+    ax.set_ylabel(rf"$\iint \delta\rho(x,y,z)\,d{other[0]}\,d{other[1]}$ (e/Å)")
     ax.set_title(f"1D charge redistribution profile along {args.profile_axis}", pad=18)
     ax.legend(frameon=False, ncol=2, loc="best")
     style_axes(ax)
@@ -960,9 +989,9 @@ def parse_fragments(text):
 
 
 def main():
-    print(f"Running analyze_density_laser_clean.py [{SCRIPT_VERSION}]")
-    p = argparse.ArgumentParser(description="Projected difference-density analysis with geometry overlay.")
-    p.add_argument("cubes", nargs="*", help="Fallback: one-series cube files, kept for backward compatibility")
+    print(f"Running analyze_density_laser.py [{SCRIPT_VERSION}]")
+    p = argparse.ArgumentParser(description="Projected induced-density analysis with geometry overlay.")
+    p.add_argument("cubes", nargs="*", help="Fallback: one-series induced-density cube files, kept for backward compatibility")
     p.add_argument("--series-a", nargs="+", default=None, help="First cube series, e.g. moving nuclei")
     p.add_argument("--series-b", nargs="+", default=None, help="Second cube series, e.g. fixed nuclei")
     p.add_argument("--geo", required=True, help="Geometry xyz file used for the calculation")
@@ -1087,8 +1116,8 @@ def main():
         print_delta_q_table(df, fragments)
 
         with open(args.out_prefix + "_analysis_summary_two_series.txt", "w") as f:
-            f.write("Difference-density two-series analysis\n")
-            f.write("====================================\n\n")
+            f.write("Induced-density two-series analysis\n")
+            f.write("===================================\n\n")
             f.write(f"Series a files: {len(series_a)}\n")
             f.write(f"Series b files: {len(series_b)}\n")
             f.write(f"Geometry: {args.geo} (read as {xyz_units}; used for symbols/order only)\n")
@@ -1099,7 +1128,8 @@ def main():
             f.write(f"Maximum atom-position shift between cube files: {max_cube_atom_shift:.6e} Å\n")
             f.write("\nSanity checks / integrals:\n")
             f.write(df.to_string(index=False))
-            f.write("\n\nNote: A1/D/A2 fragment charges use a nearest-atom Voronoi partition of the 2D projected map.\n")
+            f.write("\n\nNote: A1/D/A2 fragment charges use a nearest-atom Voronoi partition of the 2D projected map\n")
+            f.write("(projection plane, not 3D); positive = electron gain. Qualitative trend metric, not an absolute fragment population.\n")
 
         print("\nWrote:")
         print(f"  {args.out_prefix}_2D_projected_two_series.png")
@@ -1152,8 +1182,8 @@ def main():
     make_1d_profiles(cubes, labels, args, atom_xyz_cube=atom_xyz_cube)
 
     with open(args.out_prefix + "_analysis_summary_series.txt", "w") as f:
-        f.write("Difference-density series analysis\n")
-        f.write("================================\n\n")
+        f.write("Induced-density series analysis\n")
+        f.write("===============================\n\n")
         f.write(f"Cube files: {len(cubes)}\n")
         f.write(f"Geometry: {args.geo} (read as {xyz_units}; used for symbols/order only)\n")
         f.write(f"Cube units assumed: {args.cube_units}; CUBE atom coordinates used for overlay/fragment partition; output coordinates plotted in Angstrom\n")
@@ -1165,10 +1195,13 @@ def main():
         f.write("\nSanity checks / integrals:\n")
         f.write(df.to_string(index=False))
         f.write("\n\nInterpretation hints:\n")
-        f.write("- total_integral should be close to zero for |LUMO|^2-|HOMO|^2 if both orbitals are normalized.\n")
+        f.write("- The cubes contain the induced density delta_rho = rho(t) - rho_GS, represented in the dominant\n")
+        f.write("  HOMO->LUMO picture as |psi_L(t)|^2 - |psi_H(t)|^2 with both orbitals renormalized to unity.\n")
+        f.write("- total_integral should be close to zero (both orbital densities are normalized).\n")
         f.write("- positive_integral and negative_integral should have similar absolute values.\n")
         f.write("- outside_abs_fraction is a simple diagnostic for diffuse/leaking density outside an atom bounding box.\n")
-        f.write("- A1/D/A2 fragment charges use a nearest-atom Voronoi partition; use them as a consistent trend metric, not as an absolute observable.\n")
+        f.write("- A1/D/A2 fragment charges use a nearest-atom Voronoi partition in the 2D projection plane (not 3D);\n")
+        f.write("  positive = electron gain. Use them as a qualitative trend metric, not as an absolute observable.\n")
 
     print_delta_q_table(df.assign(series=""), fragments)
     print("Wrote:")
@@ -1180,3 +1213,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
