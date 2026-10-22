@@ -74,8 +74,6 @@ For the dominant HOMO→LUMO transition of A1–D–A2(3F), δρ is represented 
 
 where ψ_H(**r**,t) and ψ_L(**r**,t) are the time-dependent orbitals with HOMO and LUMO character, each renormalized to unity. Because both orbitals are normalized, the maps show the spatial character of the charge redistribution, not the magnitude of the transferred charge; the latter is quantified by the fragment populations (Workflow 2).
 
-The induced density is distinct from the **density difference** between an excited eigenstate and the ground state, which characterizes a stationary excitation.
-
 ---
 
 # Workflow 1 – Projected Induced-Density Maps
@@ -83,8 +81,6 @@ The induced density is distinct from the **density difference** between an excit
 ## Step 1 – Generate Induced-Density Cube Files
 
 `induced_density.py`
-
-This script generates normalized induced-density Cube files δρ(**r**,t) ≈ |ψ_L(t)|² − |ψ_H(t)|² from two input wavefunction Cube files (HOMO and LUMO character).
 
 Typical output:
 
