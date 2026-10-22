@@ -19,7 +19,6 @@ Although the scripts were developed for the asymmetric donor–acceptor oligomer
 
 * Fragment-resolved integration of Gaussian Cube files
 * Smooth distance-based (Voronoi-like) fragment partitioning
-* Electron-density difference calculations
 * Projected Induced-Density Maps
 * Time-dependent fragment population analysis
 * Charge-redistribution visualization
@@ -222,7 +221,7 @@ time_averaged_charge_redistribution.png
 
 # Recommended Workflow
 
-## Density-Difference Analysis
+## Induced-Density Analysis
 
 ```text
 Wavefunction Cube files
